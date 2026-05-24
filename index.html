@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ACT哮喘控制测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ========== 页面切换 ========== */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ========== 头部 ========== */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 48px 24px 36px;
+      text-align: center;
+    }
+    .header h1 { font-size: 26px; font-weight: 700; }
+    .header .sub { font-size: 14px; opacity: 0.85; margin-top: 6px; }
+    .header .tags { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
+    .header .tag {
+      background: rgba(255,255,255,0.2);
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    /* ========== 进度条 ========== */
+    .progress-bar {
+      background: #fff;
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .progress-track {
+      height: 6px;
+      background: #e8e8e8;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .progress-text {
+      font-size: 13px;
+      color: #999;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* ========== 问题卡片 ========== */
+    .question-list { padding: 16px; }
+
+    .q-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .q-card.answered { border-left: 4px solid #667eea; }
+
+    .q-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .q-num {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 26px;
+      font-size: 13px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ========== 选项 ========== */
+    .options { display: flex; flex-direction: column; gap: 10px; }
+
+    .opt {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: #f7f8fa;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.25s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .opt:active { transform: scale(0.98); }
+    .opt.selected {
+      background: #f0f3ff;
+      border-color: #667eea;
+    }
+
+    .opt-score {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+      margin-right: 14px;
+      flex-shrink: 0;
+      transition: all 0.25s;
+    }
+    .opt.selected .opt-score {
+      background: #667eea;
+      color: #fff;
+    }
+
+    .opt-text {
+      flex: 1;
+      font-size: 15px;
+      color: #555;
+      line-height: 1.4;
+    }
+    .opt.selected .opt-text { color: #333; font-weight: 500; }
+
+    .opt-check {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+      margin-left: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s;
+    }
+    .opt.selected .opt-check {
+      background: #667eea;
+      border-color: #667eea;
+    }
+    .opt.selected .opt-check::after {
+      content: '✓';
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* ========== 提交按钮 ========== */
+    .submit-area {
+      padding: 20px 16px 40px;
+      text-align: center;
+    }
+    .btn-submit {
+      width: 100%;
+      max-width: 400px;
+      padding: 16px;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+      transition: all 0.3s;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .btn-submit.enabled {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .btn-submit:active { transform: scale(0.97); }
+
+    .hint-text {
+      font-size: 13px;
+      color: #bbb;
+      margin-top: 12px;
+    }
+
+    /* ========== 结果页 ========== */
+    .result-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+    .result-label { font-size: 16px; opacity: 0.9; }
+    .result-score {
+      font-size: 80px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin: 12px 0 4px;
+    }
+    .result-total { font-size: 20px; opacity: 0.7; }
+    .result-badge {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 8px 28px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .badge-excellent { background: #4caf50; }
+    .badge-good { background: #ff9800; }
+    .badge-poor { background: #f44336; }
+
+    .result-body { padding: 16px; }
+
+    .r-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .r-card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* 评分标准表 */
+    .scale-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      background: #f7f8fa;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .scale-row:last-child { margin-bottom: 0; }
+    .scale-row.current { background: #f0f3ff; border: 1px solid #667eea; }
+    .scale-range {
+      min-width: 100px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 14px;
+      margin-right: 14px;
+    }
+    .scale-range.s-excellent { background: #e8f5e9; color: #4caf50; }
+    .scale-range.s-good { background: #fff3e0; color: #ff9800; }
+    .scale-range.s-poor { background: #ffebee; color: #f44336; }
+    .scale-desc { font-size: 15px; color: #555; }
+
+    /* 建议 */
+    .advice { font-size: 15px; line-height: 1.8; }
+    .advice.good { color: #4caf50; }
+    .advice.warning { color: #ff9800; }
+    .advice.danger { color: #f44336; }
+
+    /* 操作按钮 */
+    .action-area {
+      padding: 8px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .btn-action {
+      width: 100%;
+      padding: 15px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s;
+    }
+    .btn-action:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+    }
+    .btn-outline {
+      background: #fff;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .disclaimer {
+      text-align: center;
+      padding: 0 16px 32px;
+      font-size: 12px;
+      color: #bbb;
+      line-height: 1.6;
+    }
+
+    /* ========== 动画 ========== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.4s ease forwards; }
+    .q-card:nth-child(1) { animation-delay: 0.05s; }
+    .q-card:nth-child(2) { animation-delay: 0.1s; }
+    .q-card:nth-child(3) { animation-delay: 0.15s; }
+    .q-card:nth-child(4) { animation-delay: 0.2s; }
+    .q-card:nth-child(5) { animation-delay: 0.25s; }
+  </style>
+</head>
+<body>
+
+<!-- ==================== 测试页 ==================== -->
+<div id="pageTest" class="page active">
+  <div class="header">
+    <h1>ACT 哮喘控制测试</h1>
+    <div class="sub">Asthma Control Test</div>
+    <div class="tags">
+      <span class="tag">总分 5～25 分</span>
+      <span class="tag">每题 1～5 分</span>
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">请回答以下 5 个问题</div>
+  </div>
+
+  <div class="question-list" id="questionList"></div>
+
+  <div class="submit-area">
+    <button class="btn-submit" id="btnSubmit" onclick="showResult()">查看测试结果</button>
+    <div class="hint-text" id="hintText">回答全部问题后可查看结果</div>
+  </div>
+</div>
+
+<!-- ==================== 结果页 ==================== -->
+<div id="pageResult" class="page">
+  <div class="result-header">
+    <div class="result-label">您的 ACT 得分</div>
+    <div class="result-score" id="rScore">0</div>
+    <div class="result-total">/ 25 分</div>
+    <div class="result-badge" id="rBadge"></div>
+  </div>
+
+  <div class="result-body">
+    <div class="r-card">
+      <div class="r-card-title">评分标准</div>
+      <div id="scaleList"></div>
+    </div>
+
+    <div class="r-card">
+      <div class="r-card-title">健康建议</div>
+      <div class="advice" id="rAdvice"></div>
+    </div>
+  </div>
+
+  <div class="action-area">
+    <button class="btn-action btn-primary" onclick="retest()">重新测试</button>
+    <button class="btn-action btn-outline" onclick="shareApp()">分享给朋友</button>
+  </div>
+
+  <div class="disclaimer">
+    本测试仅供参考，不能替代医生的专业诊断。<br>如有疑问，请咨询专业医生。
+  </div>
+</div>
+
+<script>
+// ========== 题目数据 ==========
+const questions = [
+  {
+    title: '过去4周内，哮喘影响工作、学习或日常活动的程度？',
+    options: [
+      { score: 1, text: '严重受限，完全无法进行' },
+      { score: 2, text: '明显受限' },
+      { score: 3, text: '有些受限' },
+      { score: 4, text: '轻微受限' },
+      { score: 5, text: '完全不受限' }
+    ]
+  },
+  {
+    title: '过去4周内，因哮喘出现气短的次数？',
+    options: [
+      { score: 1, text: '每天都有' },
+      { score: 2, text: '每周3～6次' },
+      { score: 3, text: '每周1～2次' },
+      { score: 4, text: '每月1～2次' },
+      { score: 5, text: '完全没有' }
+    ]
+  },
+  {
+    title: '过去4周内，因哮喘夜间醒来/早醒的次数？',
+    options: [
+      { score: 1, text: '每周4次以上' },
+      { score: 2, text: '每周2～3次' },
+      { score: 3, text: '每周1次' },
+      { score: 4, text: '每月1～3次' },
+      { score: 5, text: '完全没有' }
+    ]
+  },
+  {
+    title: '过去4周内，需要临时使用急救支气管舒张剂（如沙丁胺醇、信必可）的次数？',
+    options: [
+      { score: 1, text: '每天3次以上' },
+      { score: 2, text: '每天1～2次' },
+      { score: 3, text: '每周2～3次' },
+      { score: 4, text: '每周1次或更少' },
+      { score: 5, text: '完全不用' }
+    ]
+  },
+  {
+    title: '对过去4周哮喘控制情况的评价？',
+    options: [
+      { score: 1, text: '完全没有控制' },
+      { score: 2, text: '控制很差' },
+      { score: 3, text: '控制一般' },
+      { score: 4, text: '控制较好' },
+      { score: 5, text: '完全控制' }
+    ]
+  }
+];
+
+const answers = [null, null, null, null, null];
+
+// ========== 渲染题目 ==========
+function renderQuestions() {
+  const list = document.getElementById('questionList');
+  list.innerHTML = questions.map((q, qi) => `
+    <div class="q-card fade-in" id="qCard${qi}">
+      <div class="q-title">
+        <span class="q-num">${qi + 1}</span>${q.title}
+      </div>
+      <div class="options">
+        ${q.options.map(opt => `
+          <div class="opt" data-q="${qi}" data-s="${opt.score}" onclick="selectOpt(this)">
+            <div class="opt-score">${opt.score}分</div>
+            <div class="opt-text">${opt.text}</div>
+            <div class="opt-check"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ========== 选择选项 ==========
+function selectOpt(el) {
+  const qi = parseInt(el.dataset.q);
+  const score = parseInt(el.dataset.s);
+  answers[qi] = score;
+
+  // 更新选中状态
+  const card = document.getElementById(`qCard${qi}`);
+  card.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  card.classList.add('answered');
+
+  updateProgress();
+}
+
+// ========== 更新进度 ==========
+function updateProgress() {
+  const count = answers.filter(a => a !== null).length;
+  const pct = (count / 5) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `已回答 ${count}/5 题`;
+
+  const btn = document.getElementById('btnSubmit');
+  const hint = document.getElementById('hintText');
+  if (count === 5) {
+    btn.classList.add('enabled');
+    hint.textContent = '所有问题已回答，点击查看结果';
+  } else {
+    btn.classList.remove('enabled');
+    hint.textContent = `还需回答 ${5 - count} 道题`;
+  }
+}
+
+// ========== 显示结果 ==========
+function showResult() {
+  const total = answers.reduce((s, v) => s + v, 0);
+
+  // 判断等级
+  let level, badgeClass, adviceText, adviceClass;
+  if (total === 25) {
+    level = '完全控制'; badgeClass = 'badge-excellent';
+    adviceClass = 'good';
+    adviceText = '恭喜！您的哮喘控制良好。请继续保持目前的治疗方案和生活习惯，定期复查。';
+  } else if (total >= 20) {
+    level = '部分控制'; badgeClass = 'badge-good';
+    adviceClass = 'warning';
+    adviceText = '您的哮喘部分控制，建议咨询医生评估当前治疗方案，可能需要调整药物剂量或种类，以获得更好的控制效果。同时注意避免诱发因素。';
+  } else {
+    level = '未控制'; badgeClass = 'badge-poor';
+    adviceClass = 'danger';
+    adviceText = '您的哮喘控制不佳，建议尽快就医。医生可能需要重新评估您的治疗方案，包括调整控制药物和急救药物的使用。请务必遵医嘱用药。';
+  }
+
+  // 填充结果
+  document.getElementById('rScore').textContent = total;
+  const badge = document.getElementById('rBadge');
+  badge.textContent = level;
+  badge.className = 'result-badge ' + badgeClass;
+
+  // 评分标准
+  const scales = [
+    { range: '25分', cls: 's-excellent', desc: '完全控制', match: total === 25 },
+    { range: '20～24分', cls: 's-good', desc: '部分控制', match: total >= 20 && total < 25 },
+    { range: '≤19分', cls: 's-poor', desc: '未控制（控制不佳）', match: total <= 19 }
+  ];
+  document.getElementById('scaleList').innerHTML = scales.map(s => `
+    <div class="scale-row ${s.match ? 'current' : ''}">
+      <div class="scale-range ${s.cls}">${s.range}</div>
+      <div class="scale-desc">${s.desc}</div>
+    </div>
+  `).join('');
+
+  // 建议
+  const advice = document.getElementById('rAdvice');
+  advice.textContent = adviceText;
+  advice.className = 'advice ' + adviceClass;
+
+  // 切换页面
+  document.getElementById('pageTest').classList.remove('active');
+  document.getElementById('pageResult').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ========== 重新测试 ==========
+function retest() {
+  answers.fill(null);
+  document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('answered'));
+  updateProgress();
+  document.getElementById('progressText').textContent = '请回答以下 5 个问题';
+
+  document.getElementById('pageResult').classList.remove('active');
+  document.getElementById('pageTest').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ========== 分享 ==========
+function shareApp() {
+  if (navigator.share) {
+    navigator.share({
+      title: 'ACT哮喘控制测试',
+      text: '快来测测你的哮喘控制情况吧！',
+      url: window.location.href
+    }).catch(() => {});
+  } else {
+    // 复制链接
+    const url = window.location.href;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('链接已复制，请粘贴发送给朋友！');
+      });
+    } else {
+      // fallback
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      alert('链接已复制，请粘贴发送给朋友！');
+    }
+  }
+}
+
+// ========== 初始化 ==========
+renderQuestions();
+</script>
+</body>
+</html>
